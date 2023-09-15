@@ -82,23 +82,38 @@ mergeInto(LibraryManager.library, {
     var obj = UTF8ToString(objectName);
     var method = UTF8ToString(methodName);
     try {
-      YaGames.init().then(ysdk => {
-        player.getData().then((_date) => {
-          const myJSON = JSON.stringify(_date);
-          console.log(myJSON);
-          myGameInstance.SendMessage(obj, method, myJSON);
+      YaGames.init().then(_ysdk => {
+        console.log("Player Yandex Init");
+        _ysdk.getPlayer().then(_player => {
+          console.log("Get Player");
+          _player.getData().then((_date) => {
+            console.log("Get Data");
+            var myJSON = JSON.stringify(_date);
+            console.log(myJSON);
+            myGameInstance.SendMessage(obj, method, myJSON);
+          }).catch(err => {
+            console.error(err);
+            setTimeout(() => _loadPlayerData(objectName, methodName), 1000); // Retry the function
+          });
+        }).catch(err => {
+          console.error(err);
+          setTimeout(() => _loadPlayerData(objectName, methodName), 1000); // Retry the function
         });
+      }).catch(err => {
+        console.error(err);
+        setTimeout(() => _loadPlayerData(objectName, methodName), 1000); // Retry the function
       });
-    } catch (err) {
-      console.error(err);
-      myGameInstance.SendMessage(obj, method, null);
+    } catch (error) {
+      console.error(error);
+      setTimeout(() => _loadPlayerData(objectName, methodName), 1000); // Retry the function
     }
   },
 
-  setToLeaderboard: function (value) {
+  setToLeaderboard: function (lbName, value) {
     try {
+      var lbNameString = UTF8ToString(lbName);
       ysdk.getLeaderboards().then((lb) => {
-        lb.setLeaderboardScore("gameScore", value);
+        lb.setLeaderboardScore(lbNameString, value);
       });
     } catch (err) {
       console.error(err);
@@ -174,6 +189,19 @@ mergeInto(LibraryManager.library, {
       ysdk.features.LoadingAPI.ready();
     } catch (err) {
       console.error(err);
+    }
+  },
+
+  deviceType: function () {
+    try {
+      var returnStr = ysdk.deviceInfo.type;
+      var bufferSize = lengthBytesUTF8(returnStr) + 1;
+      var buffer = _malloc(bufferSize);
+      stringToUTF8(returnStr, buffer, bufferSize);
+      return buffer;
+    } catch (err) {
+      console.error(err);
+      return null;
     }
   },
 });

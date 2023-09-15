@@ -27,7 +27,7 @@ namespace YandexSDK.Scripts
         private static extern void loadPlayerData(string objectName, string methodName);
 
         [DllImport("__Internal")]
-        private static extern void setToLeaderboard(int value);
+        private static extern void setToLeaderboard(string lbName, int value);
 
         [DllImport("__Internal")]
         private static extern string getLang();
@@ -40,8 +40,12 @@ namespace YandexSDK.Scripts
 
         [DllImport("__Internal")]
         private static extern void showRewardedAdv(string objectName, string methodName);
+
         [DllImport("__Internal")]
         private static extern void apiReady();
+
+        [DllImport("__Internal")]
+        private static extern string deviceType();
 
 
         /// <summary>
@@ -77,7 +81,14 @@ namespace YandexSDK.Scripts
         /// </summary>
         public static void RequestReviewGame()
         {
-            requestReviewGame();
+            try
+            {
+                requestReviewGame();
+            }
+            catch
+            {
+                // ignored
+            }
         }
 
         /// <summary>
@@ -93,7 +104,14 @@ namespace YandexSDK.Scripts
         /// </returns>
         public static ReviewStatus GetReviewStatus()
         {
-            return (ReviewStatus)getReviewStatus();
+            try
+            {
+                return (ReviewStatus)getReviewStatus();
+            }
+            catch
+            {
+                return ReviewStatus.Unknown;
+            }
         }
 
         public static void SavePlayerData(SaveInfo playerData)
@@ -103,61 +121,50 @@ namespace YandexSDK.Scripts
                 string json = JsonUtility.ToJson(playerData);
                 savePlayerData(json);
             }
-            catch (Exception e)
+            catch
             {
-                Debug.Log(e);
+                // ignored
             }
         }
 
-        public static void LoadPlayerData(string objectName, string methodName)
+        public static void LoadPlayerData(GameObject gameObject, string methodName)
         {
             try
             {
-                loadPlayerData(objectName, methodName);
+                loadPlayerData(gameObject.name, methodName);
             }
-            catch (Exception e)
+            catch
             {
-                Debug.Log(e);
+                gameObject.SendMessage(methodName, "");
             }
         }
 
         public static void SetToLeaderboard(int value)
         {
-#if UNITY_EDITOR
-            Debug.Log("Set to leaderboard - " + value);
-#endif
             try
             {
-                setToLeaderboard(value);
+                setToLeaderboard("gameScore", value);
             }
             catch
             {
                 // ignored
             }
-
         }
 
         public static string GetLanguageString()
         {
-#if UNITY_EDITOR
-            return "en";
-#endif
             try
             {
                 return getLang();
             }
-            catch (Exception)
+            catch
             {
-                return "en";
+                return null;
             }
-
         }
 
         public static void ShowSplashAdv(string objectName, string methodName)
         {
-#if UNITY_EDITOR
-            return;
-#endif
             try
             {
                 showSplashPageAdv(objectName, methodName);
@@ -172,31 +179,46 @@ namespace YandexSDK.Scripts
         {
 #if UNITY_EDITOR
             gameObject.SendMessage(methodName, 1);
-            return;
 #endif
-
             try
             {
                 showRewardedAdv(gameObject.name, methodName);
             }
-            catch (Exception)
+            catch
             {
                 // ignored
             }
         }
-        
+
         public static void ApiReady()
         {
-#if !UNITY_EDITOR
             try
             {
                 apiReady();
             }
-            catch (Exception)
+            catch
             {
                 // ignored
             }
-#endif
+        }
+
+        public static DeviceType GetDeviceType()
+        {
+            try
+            {
+                return deviceType() switch
+                {
+                    "desktop" => DeviceType.Desktop,
+                    "mobile" => DeviceType.Mobile,
+                    "tablet" => DeviceType.Tablet,
+                    "tv" => DeviceType.Tv,
+                    _ => DeviceType.Desktop
+                };
+            }
+            catch
+            {
+                return DeviceType.Desktop;
+            }
         }
     }
 }
