@@ -68,10 +68,9 @@ mergeInto(LibraryManager.library, {
   savePlayerData: function (data) {
     try {
       var dateString = UTF8ToString(data);
-      //console.log(dateString);
       var myobj = JSON.parse(dateString);
       player.setData(myobj, true).then(() => {
-        console.log("data is set");
+        console.log("Js data saving");
       });
     } catch (err) {
       console.error(err);
@@ -114,6 +113,7 @@ mergeInto(LibraryManager.library, {
       var lbNameString = UTF8ToString(lbName);
       ysdk.getLeaderboards().then((lb) => {
         lb.setLeaderboardScore(lbNameString, value);
+		console.log("Set to leaderboard success");
       });
     } catch (err) {
       console.error(err);

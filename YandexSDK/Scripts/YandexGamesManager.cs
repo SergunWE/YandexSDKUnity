@@ -134,6 +134,7 @@ namespace YandexSDK.Scripts
             gameObject.SendMessage(methodName, "DEBUG");
             return;
 #endif
+#pragma warning disable 0162
             try
             {
                 loadPlayerData(gameObject.name, methodName);
@@ -142,6 +143,7 @@ namespace YandexSDK.Scripts
             {
                 gameObject.SendMessage(methodName, "");
             }
+#pragma warning restore 0162
         }
 
         public static void SetToLeaderboard(int value, string lbName = "gameScore")
