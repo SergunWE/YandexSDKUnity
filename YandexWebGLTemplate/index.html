@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    <title>Unity WebGL Player | {{{ PRODUCT_NAME }}}</title>
+    <title>{{{ PRODUCT_NAME }}}</title>
     <link rel="shortcut icon" href="TemplateData/favicon.ico" />
     <link rel="stylesheet" href="TemplateData/style.css" />
     <!-- Yandex Games SDK -->
@@ -12,16 +12,32 @@
     <link rel="stylesheet" href="<<<TemplateData/diagnostics.css>>>" />
     <script src="<<<TemplateData/diagnostics.js>>>"></script>
     #endif
+	#if YANDEX_METRICA_ID
+	<!-- Yandex.Metrika counter -->
+	<script type="text/javascript">
+		(function(m,e,t,r,i,k,a){m[i]=m[i]||function(){(m[i].a=m[i].a||[]).push(arguments)};
+		m[i].l=1*new Date();
+		for (var j = 0; j < document.scripts.length; j++) {if (document.scripts[j].src === r) { return; }}
+		k=e.createElement(t),a=e.getElementsByTagName(t)[0],k.async=1,k.src=r,a.parentNode.insertBefore(k,a)})
+		(window, document, "script", "https://mc.yandex.ru/metrika/tag.js", "ym");
+		ym({{{ YANDEX_METRICA_ID }}}, "init", {
+			clickmap:true,
+			trackLinks:true,
+			accurateTrackBounce:true,
+			webvisor:true
+		});
+		window.ym = ym;
+		#if START_YANDEX_METRICA_EVENT_NAME
+		ym({{{ YANDEX_METRICA_ID }}},'reachGoal','{{{ START_YANDEX_METRICA_EVENT_NAME }}}');
+		#endif
+	</script>
+	<noscript><div><img src="https://mc.yandex.ru/watch/{{{ YANDEX_METRICA_ID }}}" style="position:absolute; left:-9999px;" alt="" /></div></noscript>
+	<!-- /Yandex.Metrika counter -->
+	#endif
   </head>
   <body>
-    <div
-      id="unity-container"
-      style="position: absolute; width: 100%; height: 100%; left: 0%; top: 0%"
-    >
-      <canvas
-        id="unity-canvas"
-        style="position: absolute; width: 100%; height: 100%"
-      ></canvas>
+    <div id="unity-container" style="position: absolute; width: 100%; height: 100%; left: 0%; top: 0%">
+      <canvas id="unity-canvas" style="position: absolute; width: 100%; height: 100%"/>
       <div id="unity-loading-bar">
         <div id="unity-logo"></div>
         <div id="unity-progress-bar-empty">
@@ -29,13 +45,22 @@
         </div>
       </div>
       <div id="unity-warning"></div>
+	  #if SHOW_DIAGNOSTICS
+	  <div id="unity-footer">
+        <img id="diagnostics-icon" src="TemplateData/webmemd-icon.png">
+		</div>
+#endif
     </div>
     <script>
       YaGames.init().then((ysdk) => {
         console.log("Yandex SDK initialized");
         window.ysdk = ysdk;
+        #if INIT_PLAYER_INSTANTLY
         initPlayer();
+		#endif
+		#if INIT_LEADERBOARD_INSTANTLY
 		initLb();
+		#endif
       });
 
       var player;
@@ -46,9 +71,13 @@
 		}
 
       function initPlayer() {
-        return ysdk.getPlayer({ scopes: true }).then((_player) => {
+	  #if ENABLE_SCOPES
+		var enableScopes = true;
+		#else
+		var enableScopes = false;
+		#endif
+        return ysdk.getPlayer({ scopes: enableScopes }).then((_player) => {
           player = _player;
-
           return player;
         });
       }
@@ -192,7 +221,7 @@
                       loadingBar.style.display = "none";
       #if SHOW_DIAGNOSTICS
                       diagnostics_icon.onclick = () => {
-                        unityDiagnostics.openDiagnosticsDiv(unityInstance.GetMemoryInfo);
+                        unityDiagnostics.openDiagnosticsDiv(unityInstance.GetMetricsInfo);
                       };
       #endif
                     }).catch((message) => {
