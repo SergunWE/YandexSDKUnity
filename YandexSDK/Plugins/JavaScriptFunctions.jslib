@@ -204,4 +204,13 @@ mergeInto(LibraryManager.library, {
       return null;
     }
   },
+  
+  callYandexMetric: function (id, goalName) {
+    try {
+      var name = UTF8ToString(goalName);
+      ym(id, 'reachGoal', name);
+    } catch (err) {
+      console.error(err);
+    }
+  },
 });

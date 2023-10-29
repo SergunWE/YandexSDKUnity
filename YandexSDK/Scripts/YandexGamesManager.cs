@@ -47,6 +47,9 @@ namespace YandexSDK.Scripts
 
         [DllImport("__Internal")]
         private static extern string deviceType();
+		
+		[DllImport("__Internal")]
+        private static extern void callYandexMetric(int id, string goalName);
 
 
         /// <summary>
@@ -231,6 +234,18 @@ namespace YandexSDK.Scripts
             catch
             {
                 return DeviceType.Desktop;
+            }
+        }
+		
+		public static void CallYandexMetric(string goalName)
+        {
+            try
+            {
+                callYandexMetric(yandexMetricId, goalName);
+            }
+            catch
+            {
+                // ignored
             }
         }
     }
