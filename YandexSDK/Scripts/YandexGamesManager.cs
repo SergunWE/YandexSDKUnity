@@ -34,9 +34,6 @@ namespace YandexSDK.Scripts
         private static extern string getLang();
 
         [DllImport("__Internal")]
-        private static extern void helloString(string str);
-
-        [DllImport("__Internal")]
         private static extern void showSplashPageAdv(string objectName, string methodName);
 
         [DllImport("__Internal")]
@@ -47,9 +44,9 @@ namespace YandexSDK.Scripts
 
         [DllImport("__Internal")]
         private static extern string deviceType();
-		
-		[DllImport("__Internal")]
-        private static extern void callYandexMetric(int id, string goalName);
+
+        [DllImport("__Internal")]
+        private static extern void callYandexMetric(string goalName);
 
 
         /// <summary>
@@ -61,10 +58,10 @@ namespace YandexSDK.Scripts
             return getPlayerName();
         }
 
-        /// <summary>
-        /// User avatar on the Yandex platform 
-        /// </summary>
-        /// <returns>Avatar texture, null on errors</returns>
+        // /// <summary>
+        // /// User avatar on the Yandex platform 
+        // /// </summary>
+        // /// <returns>Avatar texture, null on errors</returns>
         public static async Task<Texture2D> GetPlayerPhoto()
         {
             var request = UnityWebRequestTexture.GetTexture(getPlayerPhotoURL());
@@ -73,7 +70,7 @@ namespace YandexSDK.Scripts
             {
                 await Task.Yield();
             }
-
+        
             if (request.result is not (UnityWebRequest.Result.ConnectionError or UnityWebRequest.Result.ProtocolError))
                 return ((DownloadHandlerTexture)request.downloadHandler).texture;
             Debug.Log(request.error);
@@ -85,6 +82,9 @@ namespace YandexSDK.Scripts
         /// </summary>
         public static void RequestReviewGame()
         {
+#if UNITY_EDITOR
+            Debug.Log("Request review");
+#endif
             try
             {
                 requestReviewGame();
@@ -211,6 +211,7 @@ namespace YandexSDK.Scripts
             try
             {
                 apiReady();
+                CallYandexMetric("GameLoaded");
             }
             catch
             {
@@ -236,12 +237,12 @@ namespace YandexSDK.Scripts
                 return DeviceType.Desktop;
             }
         }
-		
-		public static void CallYandexMetric(string goalName)
+
+        public static void CallYandexMetric(string goalName)
         {
             try
             {
-                callYandexMetric(yandexMetricId, goalName);
+                callYandexMetric(goalName);
             }
             catch
             {

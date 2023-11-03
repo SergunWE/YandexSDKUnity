@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en-us">
-  <head>
+
+<head>
     <meta charset="utf-8" />
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     <title>{{{ PRODUCT_NAME }}}</title>
@@ -12,224 +13,239 @@
     <link rel="stylesheet" href="<<<TemplateData/diagnostics.css>>>" />
     <script src="<<<TemplateData/diagnostics.js>>>"></script>
     #endif
-	#if YANDEX_METRICA_ID
-	<!-- Yandex.Metrika counter -->
-	<script type="text/javascript">
-		(function(m,e,t,r,i,k,a){m[i]=m[i]||function(){(m[i].a=m[i].a||[]).push(arguments)};
-		m[i].l=1*new Date();
-		for (var j = 0; j < document.scripts.length; j++) {if (document.scripts[j].src === r) { return; }}
-		k=e.createElement(t),a=e.getElementsByTagName(t)[0],k.async=1,k.src=r,a.parentNode.insertBefore(k,a)})
-		(window, document, "script", "https://mc.yandex.ru/metrika/tag.js", "ym");
-		ym({{{ YANDEX_METRICA_ID }}}, "init", {
-			clickmap:true,
-			trackLinks:true,
-			accurateTrackBounce:true,
-			webvisor:true
-		});
-		window.ym = ym;
-		#if START_YANDEX_METRICA_EVENT_NAME
-		ym({{{ YANDEX_METRICA_ID }}},'reachGoal','{{{ START_YANDEX_METRICA_EVENT_NAME }}}');
-		#endif
-	</script>
-	<noscript><div><img src="https://mc.yandex.ru/watch/{{{ YANDEX_METRICA_ID }}}" style="position:absolute; left:-9999px;" alt="" /></div></noscript>
-	<!-- /Yandex.Metrika counter -->
-	#endif
-  </head>
-  <body>
+    #if YANDEX_METRICA_ID
+    <!-- Yandex.Metrika counter -->
+    <script type="text/javascript">
+        (function (m, e, t, r, i, k, a) {
+            m[i] = m[i] || function () { (m[i].a = m[i].a || []).push(arguments) };
+            m[i].l = 1 * new Date();
+            for (var j = 0; j < document.scripts.length; j++) { if (document.scripts[j].src === r) { return; } }
+            k = e.createElement(t), a = e.getElementsByTagName(t)[0], k.async = 1, k.src = r, a.parentNode.insertBefore(k, a)
+        })
+            (window, document, "script", "https://mc.yandex.ru/metrika/tag.js", "ym");
+        ym({{{ YANDEX_METRICA_ID }}}, "init", {
+            clickmap: true,
+            trackLinks: true,
+            accurateTrackBounce: true,
+            webvisor: true
+        });
+        window.ym = ym;
+		var ymId = {{{ YANDEX_METRICA_ID }}};
+		window.ymId = ymId;
+        #if START_YANDEX_METRICA_EVENT_NAME
+        ym({{{ YANDEX_METRICA_ID }}}, 'reachGoal', '{{{ START_YANDEX_METRICA_EVENT_NAME }}}');
+        #endif
+    </script>
+    <noscript>
+        <div><img src="https://mc.yandex.ru/watch/{{{ YANDEX_METRICA_ID }}}" style="position:absolute; left:-9999px;"
+                alt="" /></div>
+    </noscript>
+    <!-- /Yandex.Metrika counter -->
+    #endif
+</head>
+
+<body>
     <div id="unity-container" style="position: absolute; width: 100%; height: 100%; left: 0%; top: 0%">
-      <canvas id="unity-canvas"style="position: absolute; width: 100%; height: 100%"></canvas>
-      <div id="unity-loading-bar">
-        <div id="unity-logo"></div>
-        <div id="unity-progress-bar-empty">
-          <div id="unity-progress-bar-full"></div>
+        <canvas id="unity-canvas" style="position: absolute; width: 100%; height: 100%"></canvas>
+        <div id="unity-loading-bar">
+            <div id="unity-logo"></div>
+            <div id="unity-progress-bar-empty">
+                <div id="unity-progress-bar-full"></div>
+            </div>
         </div>
-      </div>
-      <div id="unity-warning"></div>
-	  #if SHOW_DIAGNOSTICS
-	  <div id="unity-footer">
-        <img id="diagnostics-icon" src="TemplateData/game-icon.png">
-		</div>
-#endif
+        <div id="unity-warning"></div>
+        #if SHOW_DIAGNOSTICS
+        <div id="unity-footer">
+            <img id="diagnostics-icon" src="TemplateData/game-icon.png">
+        </div>
+        #endif
     </div>
     <script>
-      YaGames.init().then((ysdk) => {
-        console.log("Yandex SDK initialized");
-        window.ysdk = ysdk;
-        #if INIT_PLAYER_INSTANTLY
-        initPlayer();
-		#endif
-		#if INIT_LEADERBOARD_INSTANTLY
-		initLb();
-		#endif
-      });
-
-      var player;
-	  
-	  var lb;
-		function initLb() {
-		ysdk.getLeaderboards().then(_lb => lb = _lb);
-		}
-
-      function initPlayer() {
-	  #if ENABLE_SCOPES
-		var enableScopes = true;
-		#else
-		var enableScopes = false;
-		#endif
-        return ysdk.getPlayer({ scopes: enableScopes }).then((_player) => {
-          player = _player;
-          return player;
+		var player;
+		var lb;
+		var unityInstance;
+		var ysdk;
+	
+        YaGames.init().then((_ysdk) => {
+            console.log("Yandex SDK initialized");
+            window.ysdk = _ysdk;
+            #if INIT_PLAYER_INSTANTLY
+            initPlayer();
+            #endif
+            #if INIT_LEADERBOARD_INSTANTLY
+            initLb();
+            #endif
         });
-      }
 
-      function auth() {
-        initPlayer()
-          .then((_player) => {
-            if (_player.getMode() === "lite") {
-              // Игрок не авторизован.
-			  console.log("Player is not authorized");
-              ysdk.auth
-                .openAuthDialog()
-                .then(() => {
-                  // Игрок успешно авторизован
-				  console.log("Player successfully authorized");
-                  initPlayer().catch((err) => {
-                    // Ошибка при инициализации объекта Player.
-					console.log("Error during initialization of Player object");
-                  });
-                })
-                .catch(() => {
-                  // Игрок не авторизован.
-				  console.log("Player is not authorized");
+        function initLb() {
+            if (lb === null || lb === undefined) {
+                ysdk.getLeaderboards().then(_lb => lb = _lb);
+            }
+
+        }
+
+        function initPlayer() {
+            if (player === null || player === undefined) {
+                #if ENABLE_SCOPES
+                var enableScopes = true;
+                #else
+                var enableScopes = false;
+                #endif
+                return ysdk.getPlayer({ scopes: enableScopes }).then((_player) => {
+                    player = _player;
+                    return player;
                 });
             }
-          })
-          .catch((err) => {
-            // Ошибка при инициализации объекта Player.
-			console.log("Error during initialization of Player object");
-          });
-      }
+        }
+
+        function auth() {
+            initPlayer()
+                .then((_player) => {
+                    if (_player.getMode() === "lite") {
+                        // Игрок не авторизован.
+                        console.log("Player is not authorized");
+                        ysdk.auth
+                            .openAuthDialog()
+                            .then(() => {
+                                // Игрок успешно авторизован
+                                console.log("Player successfully authorized");
+                                initPlayer().catch((err) => {
+                                    // Ошибка при инициализации объекта Player.
+                                    console.log("Error during initialization of Player object");
+                                });
+                            })
+                            .catch(() => {
+                                // Игрок не авторизован.
+                                console.log("Player is not authorized");
+                            });
+                    }
+                })
+                .catch((err) => {
+                    // Ошибка при инициализации объекта Player.
+                    console.log("Error during initialization of Player object");
+                });
+        }
     </script>
     <script>
 
-            var container = document.querySelector("#unity-container");
-            var canvas = document.querySelector("#unity-canvas");
-            var loadingBar = document.querySelector("#unity-loading-bar");
-            var progressBarFull = document.querySelector("#unity-progress-bar-full");
-            var warningBanner = document.querySelector("#unity-warning");
-      #if SHOW_DIAGNOSTICS
-            var diagnostics_icon = document.getElementById("diagnostics-icon");
-      #endif
+        var container = document.querySelector("#unity-container");
+        var canvas = document.querySelector("#unity-canvas");
+        var loadingBar = document.querySelector("#unity-loading-bar");
+        var progressBarFull = document.querySelector("#unity-progress-bar-full");
+        var warningBanner = document.querySelector("#unity-warning");
+        #if SHOW_DIAGNOSTICS
+        var diagnostics_icon = document.getElementById("diagnostics-icon");
+        #endif
 
-            // Shows a temporary message banner/ribbon for a few seconds, or
-            // a permanent error message on top of the canvas if type=='error'.
-            // If type=='warning', a yellow highlight color is used.
-            // Modify or remove this function to customize the visually presented
-            // way that non-critical warnings and error messages are presented to the
-            // user.
-            function unityShowBanner(msg, type) {
-              function updateBannerVisibility() {
+        // Shows a temporary message banner/ribbon for a few seconds, or
+        // a permanent error message on top of the canvas if type=='error'.
+        // If type=='warning', a yellow highlight color is used.
+        // Modify or remove this function to customize the visually presented
+        // way that non-critical warnings and error messages are presented to the
+        // user.
+        function unityShowBanner(msg, type) {
+            function updateBannerVisibility() {
                 warningBanner.style.display = warningBanner.children.length ? 'block' : 'none';
-              }
-              var div = document.createElement('div');
-              div.innerHTML = msg;
-              warningBanner.appendChild(div);
-              if (type == 'error') div.style = 'background: red; padding: 10px;';
-              else {
-                if (type == 'warning') div.style = 'background: yellow; padding: 10px;';
-                setTimeout(function() {
-                  warningBanner.removeChild(div);
-                  updateBannerVisibility();
-                }, 5000);
-              }
-              updateBannerVisibility();
             }
+            var div = document.createElement('div');
+            div.innerHTML = msg;
+            warningBanner.appendChild(div);
+            if (type == 'error') div.style = 'background: red; padding: 10px;';
+            else {
+                if (type == 'warning') div.style = 'background: yellow; padding: 10px;';
+                setTimeout(function () {
+                    warningBanner.removeChild(div);
+                    updateBannerVisibility();
+                }, 5000);
+            }
+            updateBannerVisibility();
+        }
 
-            var buildUrl = "Build";
-            var loaderUrl = buildUrl + "/{{{ LOADER_FILENAME }}}";
-            var config = {
-              dataUrl: buildUrl + "/{{{ DATA_FILENAME }}}",
-              frameworkUrl: buildUrl + "/{{{ FRAMEWORK_FILENAME }}}",
-      #if USE_THREADS
+        var buildUrl = "Build";
+        var loaderUrl = buildUrl + "/{{{ LOADER_FILENAME }}}";
+        var config = {
+            dataUrl: buildUrl + "/{{{ DATA_FILENAME }}}",
+            frameworkUrl: buildUrl + "/{{{ FRAMEWORK_FILENAME }}}",
+            #if USE_THREADS
               workerUrl: buildUrl + "/{{{ WORKER_FILENAME }}}",
-      #endif
+            #endif
       #if USE_WASM
               codeUrl: buildUrl + "/{{{ CODE_FILENAME }}}",
-      #endif
+            #endif
       #if MEMORY_FILENAME
               memoryUrl: buildUrl + "/{{{ MEMORY_FILENAME }}}",
-      #endif
+            #endif
       #if SYMBOLS_FILENAME
               symbolsUrl: buildUrl + "/{{{ SYMBOLS_FILENAME }}}",
-      #endif
+            #endif
               streamingAssetsUrl: "StreamingAssets",
-              companyName: {{{ JSON.stringify(COMPANY_NAME) }}},
-              productName: {{{ JSON.stringify(PRODUCT_NAME) }}},
-              productVersion: {{{ JSON.stringify(PRODUCT_VERSION) }}},
-              showBanner: unityShowBanner,
+            companyName: {{{ JSON.stringify(COMPANY_NAME) }}},
+        productName: {{{ JSON.stringify(PRODUCT_NAME) }}},
+        productVersion: {{{ JSON.stringify(PRODUCT_VERSION) }}},
+        showBanner: unityShowBanner,
             };
 
-            // By default Unity keeps WebGL canvas render target size matched with
-            // the DOM size of the canvas element (scaled by window.devicePixelRatio)
-            // Set this to false if you want to decouple this synchronization from
-            // happening inside the engine, and you would instead like to size up
-            // the canvas DOM size and WebGL render target sizes yourself.
-            // config.matchWebGLToCanvasSize = false;
+        // By default Unity keeps WebGL canvas render target size matched with
+        // the DOM size of the canvas element (scaled by window.devicePixelRatio)
+        // Set this to false if you want to decouple this synchronization from
+        // happening inside the engine, and you would instead like to size up
+        // the canvas DOM size and WebGL render target sizes yourself.
+        // config.matchWebGLToCanvasSize = false;
 
-            if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
-              // Mobile device style: fill the whole browser client area with the game canvas:
+        if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
+            // Mobile device style: fill the whole browser client area with the game canvas:
 
-              var meta = document.createElement('meta');
-              meta.name = 'viewport';
-              meta.content = 'width=device-width, height=device-height, initial-scale=1.0, user-scalable=no, shrink-to-fit=yes';
-              document.getElementsByTagName('head')[0].appendChild(meta);
-              container.className = "unity-mobile";
-              canvas.className = "unity-mobile";
+            var meta = document.createElement('meta');
+            meta.name = 'viewport';
+            meta.content = 'width=device-width, height=device-height, initial-scale=1.0, user-scalable=no, shrink-to-fit=yes';
+            document.getElementsByTagName('head')[0].appendChild(meta);
+            container.className = "unity-mobile";
+            canvas.className = "unity-mobile";
 
-              // To lower canvas resolution on mobile devices to gain some
-              // performance, uncomment the following line:
-              // config.devicePixelRatio = 1;
+            // To lower canvas resolution on mobile devices to gain some
+            // performance, uncomment the following line:
+            // config.devicePixelRatio = 1;
 
-      #if SHOW_DIAGNOSTICS
-              // position the diagnostics icon in the corner on the canvas
-              diagnostics_icon.style.position = "fixed";
-              diagnostics_icon.style.bottom = "10px";
-              diagnostics_icon.style.right = "0px";
-              canvas.after(diagnostics_icon);
-      #endif
+            #if SHOW_DIAGNOSTICS
+            // position the diagnostics icon in the corner on the canvas
+            diagnostics_icon.style.position = "fixed";
+            diagnostics_icon.style.bottom = "10px";
+            diagnostics_icon.style.right = "0px";
+            canvas.after(diagnostics_icon);
+            #endif
 
-            } else {
-              // Desktop style: Render the game canvas in a window that can be maximized to fullscreen:
+        } else {
+            // Desktop style: Render the game canvas in a window that can be maximized to fullscreen:
 
-              canvas.style.width = "100%";
-              canvas.style.height = "100%";
-            }
+            canvas.style.width = "100%";
+            canvas.style.height = "100%";
+        }
 
-      #if BACKGROUND_FILENAME
-            canvas.style.background = "url('" + buildUrl + "/{{{ BACKGROUND_FILENAME.replace(/'/g, '%27') }}}') center / cover";
-      #endif
-            loadingBar.style.display = "block";
+        #if BACKGROUND_FILENAME
+        canvas.style.background = "url('" + buildUrl + "/{{{ BACKGROUND_FILENAME.replace(/'/g, '%27') }}}') center / cover";
+        #endif
+        loadingBar.style.display = "block";
 
-			var myGameInstance = null;
-            var script = document.createElement("script");
-            script.src = loaderUrl;
-            script.onload = () => {
-              createUnityInstance(canvas, config, (progress) => {
+        var script = document.createElement("script");
+        script.src = loaderUrl;
+        script.onload = () => {
+            createUnityInstance(canvas, config, (progress) => {
                 progressBarFull.style.width = 100 * progress + "%";
-                    }).then((unityInstance) => {
-					  myGameInstance = unityInstance;
-                      loadingBar.style.display = "none";
-      #if SHOW_DIAGNOSTICS
-                      diagnostics_icon.onclick = () => {
-                        unityDiagnostics.openDiagnosticsDiv(unityInstance.GetMetricsInfo);
-                      };
-      #endif
-                    }).catch((message) => {
-                      alert(message);
-                    });
-                  };
+            }).then((_unityInstance) => {
+                unityInstance = _unityInstance;
+                loadingBar.style.display = "none";
+                #if SHOW_DIAGNOSTICS
+                diagnostics_icon.onclick = () => {
+                    unityDiagnostics.openDiagnosticsDiv(_unityInstance.GetMetricsInfo);
+                };
+                #endif
+            }).catch((message) => {
+                alert(message);
+            });
+        };
 
-            document.body.appendChild(script);
+        document.body.appendChild(script);
     </script>
-  </body>
+</body>
+
 </html>
