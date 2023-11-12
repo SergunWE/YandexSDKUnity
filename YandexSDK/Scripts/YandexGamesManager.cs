@@ -48,6 +48,8 @@ namespace YandexSDK.Scripts
         [DllImport("__Internal")]
         private static extern void callYandexMetric(string goalName);
 
+        private static bool _apiReadyCalled;
+
 
         /// <summary>
         /// User name on the Yandex Games platform
@@ -70,7 +72,7 @@ namespace YandexSDK.Scripts
             {
                 await Task.Yield();
             }
-        
+
             if (request.result is not (UnityWebRequest.Result.ConnectionError or UnityWebRequest.Result.ProtocolError))
                 return ((DownloadHandlerTexture)request.downloadHandler).texture;
             Debug.Log(request.error);
@@ -208,6 +210,7 @@ namespace YandexSDK.Scripts
 
         public static void ApiReady()
         {
+            if (_apiReadyCalled) return;
             try
             {
                 apiReady();
