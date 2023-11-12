@@ -9,6 +9,16 @@
     <link rel="stylesheet" href="TemplateData/style.css" />
     <!-- Yandex Games SDK -->
     <script src="https://yandex.ru/games/sdk/v2"></script>
+    <script>
+        if (window.ysdk === null || window.ysdk === undefined) {
+            YaGames.init().then((_ysdk) => {
+                if (window.ysdk === null || window.ysdk === undefined) {
+                    window.ysdk = _ysdk;
+                    console.log("Yandex SDK initialized");
+                }
+            });
+        }
+    </script>
     #if SHOW_DIAGNOSTICS
     <link rel="stylesheet" href="<<<TemplateData/diagnostics.css>>>" />
     <script src="<<<TemplateData/diagnostics.js>>>"></script>
@@ -47,9 +57,18 @@
         <canvas id="unity-canvas" style="position: absolute; width: 100%; height: 100%"></canvas>
         <div id="unity-loading-bar">
             <div id="unity-logo"></div>
-			<div class="lds-parent">
-				<div class="lds-roller"><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div></div>
-			</div>
+            <div class="lds-parent">
+                <div class="lds-roller">
+                    <div></div>
+                    <div></div>
+                    <div></div>
+                    <div></div>
+                    <div></div>
+                    <div></div>
+                    <div></div>
+                    <div></div>
+                </div>
+            </div>
             <div id="unity-progress-bar-empty">
                 <div id="unity-progress-bar-full"></div>
             </div>
@@ -65,40 +84,56 @@
         var player;
         var lb;
         var unityInstance;
-        var ysdk;
 
-        YaGames.init().then((_ysdk) => {
-            console.log("Yandex SDK initialized");
-            window.ysdk = _ysdk;
-            ysdk = _ysdk;
-            #if INIT_PLAYER_INSTANTLY
-            initPlayer();
-            #endif
-            #if INIT_LEADERBOARD_INSTANTLY
-            initLb();
-            #endif
-        });
+        #if INIT_PLAYER_INSTANTLY
+        initPlayer();
+        #endif
+        #if INIT_LEADERBOARD_INSTANTLY
+        initLb();
+        #endif
+
+        function getSdk() {
+            if (window.ysdk === null || window.ysdk === undefined) {
+                return YaGames.init().then((_ysdk) => {
+                    if (window.ysdk === null || window.ysdk === undefined) {
+                        window.ysdk = _ysdk;
+                        console.log("Yandex SDK initialized");
+                        return window.ysdk;
+                    }
+                });
+            }
+            return Promise.resolve(window.ysdk);
+        }
 
         function initLb() {
             if (lb === null || lb === undefined) {
-                ysdk.getLeaderboards().then(_lb => {
-                    lb = _lb;
+                return getSdk().then((_ysdk) => {
+                    return ysdk.getLeaderboards().then(_lb => {
+                        lb = _lb;
+                        return lb;
+                    });
                 });
             }
+            return Promise.resolve(lb);
         }
 
         function initPlayer() {
             if (player === null || player === undefined) {
-                #if ENABLE_SCOPES
-                var enableScopes = true;
-                #else
-                var enableScopes = false;
-                #endif
-                return ysdk.getPlayer({ scopes: enableScopes }).then((_player) => {
-                    player = _player;
-                    return player;
+                return getSdk().then((_ysdk) => {
+                    #if ENABLE_SCOPES
+                    var enableScopes = true;
+                    #else
+                    var enableScopes = false;
+                    #endif
+                    return ysdk.getPlayer({ scopes: enableScopes }).then((_player) => {
+                        if (player === null || player === undefined) {
+                            player = _player;
+                            return player;
+                        }
+                    });
                 });
             }
+            return Promise.resolve(player);
         }
 
         function auth() {
@@ -236,7 +271,6 @@
                 progressBarFull.style.width = 100 * progress + "%";
             }).then((_unityInstance) => {
                 unityInstance = _unityInstance;
-                window.unityInstance = _unityInstance;
                 loadingBar.style.display = "none";
                 #if SHOW_DIAGNOSTICS
                 diagnostics_icon.onclick = () => {
@@ -245,28 +279,33 @@
                 #endif
 
                 //try load player data in Unity
-
                 #if PLAYER_DATA_LOADER_CLASS
                 #if ON_PLAYER_DATA_RECEIVED_METHOD
-                var obj = UTF8ToString({{{ PLAYER_DATA_LOADER_CLASS }}});
-                var method = UTF8ToString({{{ ON_PLAYER_DATA_RECEIVED_METHOD }}});
+                console.log('Try load player data in Unity');
+                var obj = '{{{ PLAYER_DATA_LOADER_CLASS }}}';
+                var method = '{{{ ON_PLAYER_DATA_RECEIVED_METHOD }}}';
                 try {
                     if (unityInstance === undefined || player === undefined) return;
-                    player.getData().then((_date) => {
-                        var myJSON = JSON.stringify(_date);
-                        console.log(myJSON);
-                        unityInstance.SendMessage(obj, method, myJSON);
-                    });
-                } catch {
+                    initPlayer()
+                        .then((_player) => {
+                            player.getData().then((_date) => {
+                                var myJSON = JSON.stringify(_date);
+                                console.log(myJSON);
+                                unityInstance.SendMessage(obj, method, myJSON);
+                            });
+                        });
+                } catch (error) {
+                    console.log('failed load player data');
+                    console.log(error);
                     return;
                 }
                 #endif
                 #endif
 
-                
-            }).catch ((message) => {
-            alert(message);
-        });
+
+            }).catch((message) => {
+                alert(message);
+            });
         };
 
         document.body.appendChild(script);
