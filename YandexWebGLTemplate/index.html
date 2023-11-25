@@ -10,14 +10,12 @@
     <!-- Yandex Games SDK -->
     <script src="https://yandex.ru/games/sdk/v2"></script>
     <script>
-        if (window.ysdk === null || window.ysdk === undefined) {
-            YaGames.init().then((_ysdk) => {
-                if (window.ysdk === null || window.ysdk === undefined) {
-                    window.ysdk = _ysdk;
-                    console.log("Yandex SDK initialized");
-                }
-            });
-        }
+        console.log("Start Yandex SDK init");
+        YaGames.init().then((_ysdk) => {
+            window.ysdk = _ysdk;
+            console.log("Yandex SDK initialized");
+        });
+
     </script>
     #if SHOW_DIAGNOSTICS
     <link rel="stylesheet" href="<<<TemplateData/diagnostics.css>>>" />
@@ -84,30 +82,47 @@
         var player;
         var lb;
         var unityInstance;
+        var playerData;
+        var ysdk;
 
         #if INIT_PLAYER_INSTANTLY
-        initPlayer();
+        initPlayer(true);
         #endif
         #if INIT_LEADERBOARD_INSTANTLY
         initLb();
         #endif
 
-        function getSdk() {
-            if (window.ysdk === null || window.ysdk === undefined) {
-                return YaGames.init().then((_ysdk) => {
-                    if (window.ysdk === null || window.ysdk === undefined) {
-                        window.ysdk = _ysdk;
-                        console.log("Yandex SDK initialized");
-                        return window.ysdk;
+        function waitForYsdk() {
+            return new Promise((resolve) => {
+                function checkCondition() {
+                    if (ysdk === undefined || ysdk === null) {
+                        setTimeout(checkCondition, 100);
+                    } else {
+                        resolve(ysdk);
                     }
-                });
-            }
-            return Promise.resolve(window.ysdk);
+                }
+
+                checkCondition();
+            });
+        }
+
+        function waitForUnity() {
+            return new Promise((resolve) => {
+                function checkCondition() {
+                    if (unityInstance === undefined || unityInstance === null) {
+                        setTimeout(checkCondition, 100);
+                    } else {
+                        resolve(unityInstance);
+                    }
+                }
+
+                checkCondition();
+            });
         }
 
         function initLb() {
             if (lb === null || lb === undefined) {
-                return getSdk().then((_ysdk) => {
+                return waitForYsdk().then((_ysdk) => {
                     return ysdk.getLeaderboards().then(_lb => {
                         lb = _lb;
                         return lb;
@@ -117,51 +132,28 @@
             return Promise.resolve(lb);
         }
 
-        function initPlayer() {
+        function initPlayer(loadData = false) {
             if (player === null || player === undefined) {
-                return getSdk().then((_ysdk) => {
+                return waitForYsdk().then((_ysdk) => {
                     #if ENABLE_SCOPES
                     var enableScopes = true;
                     #else
                     var enableScopes = false;
                     #endif
                     return ysdk.getPlayer({ scopes: enableScopes }).then((_player) => {
-                        if (player === null || player === undefined) {
-                            player = _player;
-                            return player;
+                        if (loadData) {
+                            _player.getData().then((_date) => {
+                                var myJSON = JSON.stringify(_date);
+                                console.log(myJSON);
+                                playerData = myJSON;
+                            });
                         }
+                        player = _player;
+                        return player;
                     });
                 });
             }
             return Promise.resolve(player);
-        }
-
-        function auth() {
-            initPlayer()
-                .then((_player) => {
-                    if (_player.getMode() === "lite") {
-                        // Игрок не авторизован.
-                        console.log("Player is not authorized");
-                        ysdk.auth
-                            .openAuthDialog()
-                            .then(() => {
-                                // Игрок успешно авторизован
-                                console.log("Player successfully authorized");
-                                initPlayer().catch((err) => {
-                                    // Ошибка при инициализации объекта Player.
-                                    console.log("Error during initialization of Player object");
-                                });
-                            })
-                            .catch(() => {
-                                // Игрок не авторизован.
-                                console.log("Player is not authorized");
-                            });
-                    }
-                })
-                .catch((err) => {
-                    // Ошибка при инициализации объекта Player.
-                    console.log("Error during initialization of Player object");
-                });
         }
     </script>
     <script>
@@ -262,6 +254,11 @@
         #if BACKGROUND_FILENAME
         canvas.style.background = "url('" + buildUrl + "/{{{ BACKGROUND_FILENAME.replace(/'/g, '%27') }}}') center / cover";
         #endif
+
+        // Возвращаем фокус, если кликнули по экрану
+        canvas.addEventListener("touchstart", () => {window.focus()});
+        canvas.addEventListener("pointerdown", () => {window.focus()});
+
         loadingBar.style.display = "block";
 
         var script = document.createElement("script");
@@ -271,38 +268,13 @@
                 progressBarFull.style.width = 100 * progress + "%";
             }).then((_unityInstance) => {
                 unityInstance = _unityInstance;
+                console.log("Unity instance initialized");
                 loadingBar.style.display = "none";
                 #if SHOW_DIAGNOSTICS
                 diagnostics_icon.onclick = () => {
                     unityDiagnostics.openDiagnosticsDiv(_unityInstance.GetMetricsInfo);
                 };
                 #endif
-
-                //try load player data in Unity
-                #if PLAYER_DATA_LOADER_CLASS
-                #if ON_PLAYER_DATA_RECEIVED_METHOD
-                console.log('Try load player data in Unity');
-                var obj = '{{{ PLAYER_DATA_LOADER_CLASS }}}';
-                var method = '{{{ ON_PLAYER_DATA_RECEIVED_METHOD }}}';
-                try {
-                    if (unityInstance === undefined || player === undefined) return;
-                    initPlayer()
-                        .then((_player) => {
-                            player.getData().then((_date) => {
-                                var myJSON = JSON.stringify(_date);
-                                console.log(myJSON);
-                                unityInstance.SendMessage(obj, method, myJSON);
-                            });
-                        });
-                } catch (error) {
-                    console.log('failed load player data');
-                    console.log(error);
-                    return;
-                }
-                #endif
-                #endif
-
-
             }).catch((message) => {
                 alert(message);
             });
